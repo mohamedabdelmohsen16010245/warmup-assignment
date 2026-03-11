@@ -1,4 +1,45 @@
-const fs = require("fs");
+// ---------- Helper Functions ----------
+
+// convert "hh:mm:ss am/pm" → seconds
+function time12ToSeconds(t) {
+    let [time, period] = t.split(" ");
+    let timeSplit = time.split(":").map(Number);
+  
+    let hour = timeSplit[0];
+    let minute = timeSplit[1];
+    let second = timeSplit[2];
+  
+    if (period === "pm" && hour !== 12) {
+      hour += 12;
+    }
+  
+    if (period === "am" && hour === 12) {
+      hour = 0;
+    }
+  
+    return hour * 3600 + minute * 60 + second;
+  }
+
+function timeToSeconds(t) {
+  let time = t.split(":").map(Number);
+  const hour = time[0];
+  const minute = time[1];
+  const second = time[2];
+  return hour * 3600 + minute * 60 + second;
+}
+
+
+function secondsToTime(sec) {
+  let h = Math.floor(sec / 3600);
+  sec %= 3600;
+  let m = Math.floor(sec / 60);
+  let s = sec % 60;
+
+ if (m < 10) m = "0" + m;
+if (s < 10) s = "0" + s;
+
+return [h, m, s].join(":");
+}
 
 // ============================================================
 // Function 1: getShiftDuration(startTime, endTime)
@@ -7,7 +48,14 @@ const fs = require("fs");
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getShiftDuration(startTime, endTime) {
-    // TODO: Implement this function
+  let startSeconds = time12ToSeconds(startTime);
+  let endSeconds = time12ToSeconds(endTime);
+
+  if (endSeconds < startSeconds) {
+    endSeconds = endSeconds + 24 * 3600;
+  }
+   
+  return secondsToTime(endSeconds - startSeconds);
 }
 
 // ============================================================
@@ -17,7 +65,21 @@ function getShiftDuration(startTime, endTime) {
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getIdleTime(startTime, endTime) {
-    // TODO: Implement this function
+  let start = time12ToSeconds(startTime);
+  let end = time12ToSeconds(endTime);
+
+  if (end < start) end += 24 * 3600;
+
+  let deliveryStart = 8 * 3600;
+  let deliveryEnd = 22 * 3600;
+
+  let idle = 0;
+
+  if (start < deliveryStart) idle += Math.min(end, deliveryStart) - start;
+
+  if (end > deliveryEnd) idle += end - Math.max(start, deliveryEnd);
+
+  return secondsToTime(idle);
 }
 
 // ============================================================
@@ -27,8 +89,12 @@ function getIdleTime(startTime, endTime) {
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getActiveTime(shiftDuration, idleTime) {
-    // TODO: Implement this function
+  let shift = timeToSeconds(shiftDuration);
+  let idle = timeToSeconds(idleTime);
+
+  return secondsToTime(shift - idle);
 }
+
 
 // ============================================================
 // Function 4: metQuota(date, activeTime)
@@ -37,7 +103,16 @@ function getActiveTime(shiftDuration, idleTime) {
 // Returns: boolean
 // ============================================================
 function metQuota(date, activeTime) {
-    // TODO: Implement this function
+  let active = timeToSeconds(activeTime);
+
+  let eidStart = new Date("2025-04-10");
+  let eidEnd = new Date("2025-04-30");
+
+  let d = new Date(date);
+
+  let quota = d >= eidStart && d <= eidEnd ? 6 * 3600 : 8 * 3600 + 24 * 60;
+
+  return active >= quota;
 }
 
 // ============================================================
